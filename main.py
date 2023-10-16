@@ -181,12 +181,12 @@ if __name__ == "__main__":
     for block in db:
         print(block)
 
-    print("----")
+    print("----------------------------------------------------------------")
 
     # dopisywanie do wczesniejszych blokow zamiast pisania po najnowszym
     b2 = db.append(Block(a.hash, 0, BlockData(b"alternatywnie")).make_verified())
     c2 = db.append(Block(b2.hash, 0, BlockData(b"tzw fork w")).make_verified())
-    d2 = db.append(Block(c2.hash, 0, BlockData(b"lancuchu")).make_verified())
+    # d2 = db.append(Block(c2.hash, 0, BlockData(b"lancuchu")).make_verified())
 
     for block in db:
         print(block)
