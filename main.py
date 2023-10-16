@@ -173,6 +173,7 @@ class Database:
 if __name__ == "__main__":
     db = Database()
 
+    print("Primal blockchain")
     # dopisywanie po kolei
     a = db.write(b"czesc")
     b = db.write(b"siema")
@@ -182,11 +183,11 @@ if __name__ == "__main__":
         print(block)
 
     print("----------------------------------------------------------------")
-
     # dopisywanie do wczesniejszych blokow zamiast pisania po najnowszym
     b2 = db.append(Block(a.hash, 0, BlockData(b"alternatywnie")).make_verified())
     c2 = db.append(Block(b2.hash, 0, BlockData(b"tzw fork w")).make_verified())
     # d2 = db.append(Block(c2.hash, 0, BlockData(b"lancuchu")).make_verified())
 
+    print("Final blockchain")
     for block in db:
         print(block)
