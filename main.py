@@ -3,6 +3,8 @@ import net
 import sys
 from select import select
 
+seen_blocks = set()
+
 if __name__ == "__main__":
     net = net.Network()
     db = blocks.Database()
@@ -59,3 +61,7 @@ if __name__ == "__main__":
                     continue
                 block = blocks.Block.decode(msg)
                 db.append(block)
+                for peer in net.peers:
+                    if block.hash not in seen_blocks:
+                        net.write(block.encode())
+                        seen_blocks.add(block.hash)
