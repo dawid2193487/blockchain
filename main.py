@@ -61,7 +61,11 @@ if __name__ == "__main__":
                     continue
                 block = blocks.Block.decode(msg)
                 db.append(block)
+                blocks_to_resend = db.rewrite()
                 for peer in net.peers:
                     if block.hash not in seen_blocks:
+                        net.write(block.encode())
+                        seen_blocks.add(block.hash)
+                    for block in blocks_to_resend:
                         net.write(block.encode())
                         seen_blocks.add(block.hash)

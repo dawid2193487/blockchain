@@ -132,6 +132,7 @@ class Database:
     heap = dict()
     generations = {BlockHash(b"\0"): 0}
     pending = {}
+    own_blocks = []
 
     @property
     def head(self):
@@ -165,6 +166,21 @@ class Database:
 
         return block
 
+    def rewrite(self):
+        main_chain = list(self)
+        data_to_rewrite = []
+        rewritten = []
+        rewritten_original = []
+        for own_block in self.own_blocks:
+            if own_block not in main_chain:
+                data_to_rewrite.append(own_block.data.value)
+                rewritten_original.append(own_block)
+        for data in data_to_rewrite:
+            rewritten.append(self.write(data))
+        for r in rewritten_original:
+            self.own_blocks.remove(r)
+        return rewritten
+
     def write(self, data: bytes):
         """
         Konstruuje blok z podanymi danymi, przeprowadza proof-of-work i zapisuje po aktualnym `head`
@@ -175,6 +191,7 @@ class Database:
             BlockData(data)
         )
         block.make_verified()
+        self.own_blocks.append(block)
         return self.append(block)
 
     def __iter__(self):
