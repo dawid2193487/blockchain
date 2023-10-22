@@ -6,7 +6,9 @@ from hashlib import sha256
 
 DATA_LENGTH = 1024
 HASH_LENGTH = 256 // 8
-DIFFICULTY = 2
+DIFFICULTY = 2 # ostrożnie!
+
+BLOCK_STRUCT_SCHEMA = f"!{HASH_LENGTH}sQ{DATA_LENGTH}s"
 
 class Encodable(ABC):
     """
@@ -81,14 +83,14 @@ class Block(Encodable):
         """
         Koduje blok do postaci binarnej
         """
-        return struct.pack(f"!{HASH_LENGTH}sQ{DATA_LENGTH}s", self.prev.encode(), self.nonce, self.data.encode())
+        return struct.pack(BLOCK_STRUCT_SCHEMA, self.prev.encode(), self.nonce, self.data.encode())
     
     @classmethod
     def decode(cls, data: bytes) -> Self:
         """
         Dekoduje blok z postaci binarnej
         """
-        prev_bin, nonce, data_bin = struct.unpack(f"!{HASH_LENGTH}sQ{DATA_LENGTH}s", data)
+        prev_bin, nonce, data_bin = struct.unpack(BLOCK_STRUCT_SCHEMA, data)
         return cls(
             BlockHash.decode(prev_bin),
             nonce,
@@ -114,7 +116,7 @@ class Block(Encodable):
         """
         Wykonuje proof-of-work aby uczynić blok poprawnym
         """
-        MAX_ITER = 2**20
+        MAX_ITER = 2**24
         while self.nonce < MAX_ITER:
             self.nonce += 1
             if self.is_verified:
@@ -133,9 +135,12 @@ class Database:
     @property
     def head(self):
         """
-        Zwraca blok który jest końcem najdłuższego łańcucha
+        Zwraca blok który jest końcem najdłuższego łańcucha. W przypadku remisu wybiera hash o większej wartości.
         """
-        return max(self.generations, key=self.generations.get)
+        max_len = max(self.generations.values())
+        candidates = [hash for hash, length in self.generations.items() if length == max_len]
+
+        return max(candidates, key=lambda h: h.value)
 
     def append(self, block: Block):
         """
@@ -145,7 +150,6 @@ class Database:
             raise ValueError("Attempted to append unverified block")
         self.heap[block.hash] = block
         self.generations[block.hash] = self.generations[block.prev] + 1
-        # del self.generations[block.prev]
         return block
 
     def write(self, data: bytes):
@@ -162,7 +166,7 @@ class Database:
 
     def __iter__(self):
         """
-        Iterator po najdłuższym łańcuchu
+        Iterator po kanonicznym łańcuchu
         """
         cursor = self.head
         while not cursor.is_genesis:
@@ -185,8 +189,10 @@ if __name__ == "__main__":
     print("----------------------------------------------------------------")
     # dopisywanie do wczesniejszych blokow zamiast pisania po najnowszym
     b2 = db.append(Block(a.hash, 0, BlockData(b"alternatywnie")).make_verified())
-    c2 = db.append(Block(b2.hash, 0, BlockData(b"tzw fork w")).make_verified())
+    c2 = db.append(Block(b2.hash, 0, BlockData(b"tzw forkjhjkkhhhjj w")).make_verified())
     # d2 = db.append(Block(c2.hash, 0, BlockData(b"lancuchu")).make_verified())
+
+    print(c2.encode())
 
     print("Final blockchain")
     for block in db:
