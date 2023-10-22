@@ -131,16 +131,23 @@ class Block(Encodable):
 class Database:
     heap = dict()
     generations = {BlockHash(b"\0"): 0}
+    pending = {}
 
     @property
     def head(self):
         """
-        Zwraca blok który jest końcem najdłuższego łańcucha. W przypadku remisu wybiera hash o większej wartości.
+        Zwraca hash bloku który jest końcem najdłuższego łańcucha. W przypadku remisu wybiera hash o większej wartości.
         """
         max_len = max(self.generations.values())
         candidates = [hash for hash, length in self.generations.items() if length == max_len]
 
         return max(candidates, key=lambda h: h.value)
+    
+    def resolve_pending(self, block: Block):
+        child = self.pending[block.hash]
+        self.append(child)
+        del self.pending[block.hash]
+        self.resolve_pending(child)
 
     def append(self, block: Block):
         """
@@ -149,7 +156,13 @@ class Database:
         if not block.is_verified:
             raise ValueError("Attempted to append unverified block")
         self.heap[block.hash] = block
-        self.generations[block.hash] = self.generations[block.prev] + 1
+        try:
+            self.generations[block.hash] = self.generations[block.prev] + 1
+            self.resolve_pending(block)
+        except KeyError:
+            # block references a parent we don't have yet.
+            self.pending[block.prev] = block
+
         return block
 
     def write(self, data: bytes):
